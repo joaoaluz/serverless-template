@@ -1,0 +1,11 @@
+NewProduct:
+  handler: src/functions/newProduct.main
+  events:
+    - http:
+        method: post
+        path: products
+  iamRoleStatementsName: newProduct-lambdaRole      
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:PutItem
+      Resource: arn:aws:dynamodb:us-east-1:244183629378:table/serverless-template-products

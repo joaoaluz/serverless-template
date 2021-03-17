@@ -1,0 +1,8 @@
+{
+  "body": {
+    "name": "minio",
+    "price": 12.50,
+    "description": "minio bonito",
+    "s3ImageUrl": "minion.jpeg"
+  }
+}
