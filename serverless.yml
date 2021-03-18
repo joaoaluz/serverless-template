@@ -25,6 +25,7 @@ package:
 
 functions:
   - ${file(sls/functions/newProduct.yml)}
+  - ${file(sls/functions/getProduct.yml)}
 
 resources:
   # Created resource dynamoDb in yml code

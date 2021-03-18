@@ -94,6 +94,12 @@
               "LogGroupName": "/aws/lambda/serverless-template-dev-NewProduct"
             }
           },
+          "GetProductLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/serverless-template-dev-GetProduct"
+            }
+          },
           "IamRoleLambdaExecution": {
             "Type": "AWS::IAM::Role",
             "Properties": {
@@ -178,7 +184,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/serverless-template/dev/1616024820357-2021-03-17T23:47:00.357Z/serverless-template.zip"
+                "S3Key": "serverless/serverless-template/dev/1616025747943-2021-03-18T00:02:27.943Z/serverless-template.zip"
               },
               "Handler": "src/functions/newProduct.main",
               "Runtime": "nodejs12.x",
@@ -202,14 +208,55 @@
               "NewProductLogGroup"
             ]
           },
-          "NewProductLambdaVersionUWwEvbO7KG8rQPbLiV9PgW4lnumDY2dZeJ5FqUhV0": {
+          "GetProductLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/serverless-template/dev/1616025747943-2021-03-18T00:02:27.943Z/serverless-template.zip"
+              },
+              "Handler": "src/functions/getProduct.main",
+              "Runtime": "nodejs12.x",
+              "FunctionName": "serverless-template-dev-GetProduct",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Environment": {
+                "Variables": {
+                  "productsTabledynamodb": "serverless-template-products"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "GetProductIamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetProductIamRoleLambdaExecution",
+              "GetProductLogGroup"
+            ]
+          },
+          "NewProductLambdaVersionTUmwCUlnxj8ideSLDqHi0lqpugPRdiq0IB5Ms30ez5o": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "NewProductLambdaFunction"
               },
-              "CodeSha256": "WccXNjdo4JxTTCG36/Y6qf3VZQLxsx+INM3fL+AwRHw="
+              "CodeSha256": "DDE7MpK4aKpZgbk3DB0O3I0UnrDG3rEGMi+h7jL+GL0="
+            }
+          },
+          "GetProductLambdaVersionW49pUnFtURlwtKCLKUi8EobNxfzr78gYuQxKJG2Ja2E": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetProductLambdaFunction"
+              },
+              "CodeSha256": "DDE7MpK4aKpZgbk3DB0O3I0UnrDG3rEGMi+h7jL+GL0="
             }
           },
           "ApiGatewayRestApi": {
@@ -234,6 +281,18 @@
                 ]
               },
               "PathPart": "products",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceProductsProductidVar": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceProducts"
+              },
+              "PathPart": "{productId}",
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
@@ -282,7 +341,50 @@
               "MethodResponses": []
             }
           },
-          "ApiGatewayDeployment1616024815427": {
+          "ApiGatewayMethodProductsProductidVarGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceProductsProductidVar"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetProductLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            }
+          },
+          "ApiGatewayDeployment1616025742938": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -291,7 +393,8 @@
               "StageName": "dev"
             },
             "DependsOn": [
-              "ApiGatewayMethodProductsPost"
+              "ApiGatewayMethodProductsPost",
+              "ApiGatewayMethodProductsProductidVarGet"
             ]
           },
           "NewProductLambdaPermissionApiGateway": {
@@ -300,6 +403,43 @@
               "FunctionName": {
                 "Fn::GetAtt": [
                   "NewProductLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GetProductLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetProductLambdaFunction",
                   "Arn"
                 ]
               },
@@ -394,6 +534,69 @@
               "ManagedPolicyArns": []
             }
           },
+          "GetProductIamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "serverless-template",
+                        "dev",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup",
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/serverless-template-dev-GetProduct:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "dynamodb:GetItem"
+                        ],
+                        "Resource": "arn:aws:dynamodb:us-east-1:244183629378:table/serverless-template-products"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": "getProduct-lambdaRole",
+              "ManagedPolicyArns": []
+            }
+          },
           "productsTabledynamodb": {
             "Type": "AWS::DynamoDB::Table",
             "Properties": {
@@ -423,7 +626,13 @@
           "NewProductLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "NewProductLambdaVersionUWwEvbO7KG8rQPbLiV9PgW4lnumDY2dZeJ5FqUhV0"
+              "Ref": "NewProductLambdaVersionTUmwCUlnxj8ideSLDqHi0lqpugPRdiq0IB5Ms30ez5o"
+            }
+          },
+          "GetProductLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetProductLambdaVersionW49pUnFtURlwtKCLKUi8EobNxfzr78gYuQxKJG2Ja2E"
             }
           },
           "ServiceEndpoint": {
@@ -582,7 +791,34 @@
         "timeout": 6,
         "runtime": "nodejs12.x",
         "vpc": {},
-        "versionLogicalId": "NewProductLambdaVersionUWwEvbO7KG8rQPbLiV9PgW4lnumDY2dZeJ5FqUhV0"
+        "versionLogicalId": "NewProductLambdaVersionTUmwCUlnxj8ideSLDqHi0lqpugPRdiq0IB5Ms30ez5o"
+      },
+      "GetProduct": {
+        "handler": "src/functions/getProduct.main",
+        "events": [
+          {
+            "http": {
+              "method": "get",
+              "path": "products/{productId}",
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "iamRoleStatementsName": "getProduct-lambdaRole",
+        "iamRoleStatements": [
+          {
+            "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"GetProductIamRoleLambdaExecution\"][\"Properties\"][\"Policies\"][0][\"PolicyDocument\"][\"Statement\"][1]"
+          }
+        ],
+        "name": "serverless-template-dev-GetProduct",
+        "package": {
+          "artifact": ".serverless/serverless-template.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs12.x",
+        "vpc": {},
+        "versionLogicalId": "GetProductLambdaVersionW49pUnFtURlwtKCLKUi8EobNxfzr78gYuQxKJG2Ja2E"
       }
     },
     "resources": {
@@ -629,7 +865,7 @@
           ".git/**",
           "node_modules/**"
         ],
-        "artifactDirectoryName": "serverless/serverless-template/dev/1616024820357-2021-03-17T23:47:00.357Z"
+        "artifactDirectoryName": "serverless/serverless-template/dev/1616025747943-2021-03-18T00:02:27.943Z"
       },
       "functions": {
         "$ref": "$[\"service\"][\"functions\"]"
@@ -641,7 +877,7 @@
     "isDashboardMonitoringPreconfigured": false
   },
   "package": {
-    "artifactDirectoryName": "serverless/serverless-template/dev/1616024820357-2021-03-17T23:47:00.357Z",
+    "artifactDirectoryName": "serverless/serverless-template/dev/1616025747943-2021-03-18T00:02:27.943Z",
     "artifact": ""
   }
 }
